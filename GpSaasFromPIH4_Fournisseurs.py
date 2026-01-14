@@ -1,4 +1,5 @@
 import requests
+import base64
 import oracledb
 import json
 import unicodedata
@@ -103,37 +104,40 @@ def initialiseParametreGlobalLRYE () :
     global globalFicDebug
     global globalFicTraceCsv
     global DoPostGp  
+    global globalCredentialGP
     DoTrace  = True
-    DoDebug = True
-    DoPostGp = True
+    DoDebug  = True
+    DoPostGp = False
+
     globalAcheteurGP = 'LES RESIDENCES'
-    ServeurGP    = 'eaque.opievoy.fr'
-    UserApiGP    = 'Json:1234'
-    PortGP       = '8888'
+    ServeurGP    = 'NS3250347.gesprojet.com'
+    UserApiGP    = 'JsonRes:Vc4#Sn7)Dw8!'
+    PortGP       = '9548'
     ComplementGP = 'req_json?'
-    httpGP       = 'HTTP'
+    httpGP       = 'https'
     globalUserPih  = 'LOGI'
     globalPwdPih   = 'SB'
     globalScsoPih  = 'OPI'
     globalDsnPih   = 'IG_PRODRYE'
-    #globalDsnPih   = 'OnP_LR7891'
-    globalUrlGP = httpGP + '://' + UserApiGP + '@' + ServeurGP + ':' + PortGP + '/' + ComplementGP
+    # globalDsnPih   = 'OnP_LR7891'
+    globalUrlGP = httpGP +'://'+ ServeurGP +':'+ PortGP+'/'+ ComplementGP
+    globalCredentialGP = base64.b64encode(UserApiGP.encode()).decode()
     oracledb.init_oracle_client(lib_dir=r"C:\Oracle\instantclient_21_13")
     globalNbMaj = 0
     globalNbDel = 0 
     globalNbIns = 0
     globalNbOk  = 0
     globalDateCourte = datetime.now().strftime("%d-%m-%y")
-    NomFicTrace = 'C:\\Exploitation\\interfacesGpPih4\\Trace\\fournisseur_'+datetime.now().strftime("%d-%m-%Y-%H%M%S")+'.txt'
-    NomFicDebug = 'C:\\Exploitation\\interfacesGpPih4\\Trace\\DebugFournisseur_'+datetime.now().strftime("%d-%m-%Y-%H%M%S")+'.txt'
-    NomFicTraceCsv = 'C:\\Exploitation\\interfacesGpPih4\\Trace\\fournisseur_'+datetime.now().strftime("%d-%m-%Y-%H%M%S")+'.csv'
+    NomFicTrace = 'C:\\Exploitation\\interfaceGpSaasPih4Saas\\Trace\\fournisseur_'+datetime.now().strftime("%d-%m-%Y-%H%M%S")+'.txt'
+    NomFicDebug = 'C:\\Exploitation\\interfaceGpSaasPih4Saas\\Trace\\DebugFournisseur_'+datetime.now().strftime("%d-%m-%Y-%H%M%S")+'.txt'
+    NomFicTraceCsv = 'C:\\Exploitation\\interfaceGpSaasPih4Saas\\Trace\\fournisseur_'+datetime.now().strftime("%d-%m-%Y-%H%M%S")+'.csv'
     if DoDebug : 
          globalFicDebug = open (NomFicDebug,'x')       
     if DoTrace : 
         globalFicTrace = open (NomFicTrace,'x')
     if DoTrace and not (DoPostGp):
         globalFicTraceCsv = open (NomFicTraceCsv,'x')
-        trace2 (f'Action;Nom_Table;Raison_Sociale;Numero_Rue;Code_et_ville;Telephone;Telecopie;Cloturer_le_tiers;Activite;BP_ZI_Lieu_dit;\
+        trace2 (f'Action;Nom_Table;Raison_sociale;Numero_Rue;Code_et_ville;Telephone;Telecopie;Cloturer_le_tiers;Activite;BP_ZI_Lieu_dit;\
 Email;Forme_juridique;Pays;Champ_libre_1;Champ_libre_2;Champ_libre_3;Commentaires;Imputation;Siret;APE;Numero_TVA;Rib_nom_banque;Iban;BIC;') 
 
 def initialiseConnexionBasePih () :
@@ -181,14 +185,14 @@ def cursorOracle_multipleRowBindDict(laRequete,leDicoParam):
     resultat = cursorOracle.fetchall()
     cursorOracle.close()
     return (resultat)  
-        
+          
 def requeteGetGP (pComplementRequete) :
     try :
         debug ('requeteGetGP : Entree')
         #debug (f'>Complement de route = {pComplementRequete}')
         global globalUrlGP
         localPayLoad = []
-        localHeader  = {}
+        localHeader  = {"Authorization": f"Basic {globalCredentialGP}"}
         localUrl=globalUrlGP+pComplementRequete
         response=requests.request ('GET', url=localUrl, headers = localHeader, data = localPayLoad)
         if response and response.status_code in (200,201) :
@@ -225,7 +229,8 @@ def requetePostGPReel (pAction, donneeGpDictionnaire) :
         #debug ('--------')
         #debug (f"Reel {localUrl} : {donneeGpDictionnaire}")
         payload = json.dumps (donneeGpDictionnaire)
-        headers = {'Content-Type':'application/json'}
+        headers = {'Content-Type':'application/json',
+                   'Authorization': f'Basic {globalCredentialGP}'}
         response=requests.request ("POST",url=localUrl,headers=headers,data=payload)
         #debug (f'reponse = {response}')
         #debug (f'statut = {response.status_code}')
@@ -234,8 +239,8 @@ def requetePostGPReel (pAction, donneeGpDictionnaire) :
             trace ('requetePostGPReel : Retour = OK')
         else :
             trace('requetePostGPReel : Retour en erreur')
-    except :
-        trace ('requetePostGPReel : Valeur renvoyé en erreur !!!')
+    except Exception as e:
+        trace ('requetePostGPReel : Valeur renvoyé en erreur !!!{e}')
 
 def requetePostGPDebug (pAction, donneeGpDictionnaire) :
     try :
@@ -256,29 +261,41 @@ def requetePostGPDebug (pAction, donneeGpDictionnaire) :
             localNomTable = donneeGpDictionnaire[0]["Nom_Table"]
             localValeurId = 0
         jsonArgument = json.dumps(donneeGpDictionnaire)
-        localPayLoad = []
-        localHeader  = {}
+        payload = json.dumps (donneeGpDictionnaire)
+        headers = {'Content-Type':'application/json',
+                   'Authorization': f'Basic {globalCredentialGP}'}
         localUrl=f'{globalUrlGP}=null'
         debug ('--------')
         debug (f"{pAction} : {donneeGpDictionnaire}")
         debug (f"ROUTE POST = {localUrl}")
-        trace2 (f'{pAction};{donneeGpDictionnaire[0]["Nom_Table"]};\
-{donneeGpDictionnaire[0]["Raison_Sociale"]};{donneeGpDictionnaire[0]["Numero_Rue"]};\
-{donneeGpDictionnaire[0]["Code_et_ville"]};{donneeGpDictionnaire[0]["Telephone"]};\
-{donneeGpDictionnaire[0]["Telecopie"]};{donneeGpDictionnaire[0]["Cloturer_le_tiers"]};\
-{donneeGpDictionnaire[0]["Activite"]};{donneeGpDictionnaire[0]["BP_ZI_Lieu_dit"]};\
-{donneeGpDictionnaire[0]["Email"]};{donneeGpDictionnaire[0]["Forme_juridique"]};\
-{donneeGpDictionnaire[0]["Pays"]};{donneeGpDictionnaire[0]["Champ_libre_1"]};\
-{donneeGpDictionnaire[0]["Champ_libre_2"]};{donneeGpDictionnaire[0]["Champ_libre_3"]};\
-{donneeGpDictionnaire[0]["Commentaires"]};{donneeGpDictionnaire[0]["Imputation"]};\
-{donneeGpDictionnaire[0]["Siret"]};\
-{donneeGpDictionnaire[0]["APE"]};{donneeGpDictionnaire[0]["Numero_TVA"]};\
-{donneeGpDictionnaire[0]["Rib_nom_banque"]};{donneeGpDictionnaire[0]["Iban"]};\
-{donneeGpDictionnaire[0]["BIC"]};') 
-        return (None)
-    except :
-        trace ('requetePostGPDebug : En erreur !!!')
-        return (None)
+        ligneFournisseur = (
+    f"{pAction};{donneeGpDictionnaire[0]['Nom_Table']};"
+    f"{donneeGpDictionnaire[0]['Raison_sociale']};"
+    f"{donneeGpDictionnaire[0]['Numero_Rue']};"
+    f"{donneeGpDictionnaire[0]['Code_et_ville']};"
+    f"{donneeGpDictionnaire[0]['Telephone']};"
+    f"{donneeGpDictionnaire[0]['Telecopie']};"
+    f"{donneeGpDictionnaire[0]['Cloturer_le_tiers']};"
+    f"{donneeGpDictionnaire[0]['Activite']};"
+    f"{donneeGpDictionnaire[0]['BP_ZI_Lieu_dit']};"
+    f"{donneeGpDictionnaire[0]['Email']};"
+    f"{donneeGpDictionnaire[0]['Forme_juridique']};"
+    f"{donneeGpDictionnaire[0]['Pays']};"
+    f"{donneeGpDictionnaire[0]['Champ_libre_1']};"
+    f"{donneeGpDictionnaire[0]['Champ_libre_2']};"
+    f"{donneeGpDictionnaire[0]['Champ_libre_3']};"
+    f"{donneeGpDictionnaire[0]['Commentaires']};"
+    f"{donneeGpDictionnaire[0]['Imputation']};"
+    f"{donneeGpDictionnaire[0]['Siret']};"
+    f"{donneeGpDictionnaire[0]['APE']};"
+    f"{donneeGpDictionnaire[0]['Numero_TVA']};"
+    f"{donneeGpDictionnaire[0]['Rib_nom_banque']};"
+    f"{donneeGpDictionnaire[0]['Iban']};"
+    f"{donneeGpDictionnaire[0]['BIC']};"
+)
+        trace2 (ligneFournisseur) 
+    except Exception as e:
+         trace (f'requetePostGPDebug : En erreur !!!{e}')
 
 def requetePostGP (pAction, donneeGpDictionnaire) :
     debug ('requetePostGP:Entree')
@@ -329,7 +346,7 @@ def creationAdrGpVide (leDicoAdrGp, leNomFou, leCodeFou) :
     debug ('creationAdrGpVide :Entree')
     leDicoAdrGp["Nom_Table"]           = 'Adresses'
     leDicoAdrGp["Valeur_ID"]           = 0
-    leDicoAdrGp["Raison_Sociale"]      = leNomFou+' ( F'+str(leCodeFou)+' )'
+    leDicoAdrGp["Raison_sociale"]      = leNomFou+' ( F'+str(leCodeFou)+' )'
     leDicoAdrGp["Numero_Rue"]          = '' 
     leDicoAdrGp["Code_et_ville"]       = ''
     leDicoAdrGp["Telephone"]           = 0
@@ -797,7 +814,7 @@ def doIt ():
     trace ('Lancement global')
     if initialiseConnexionBasePih () :
         rapprocheDonneesGesprojetAvecPIH ()
-        completeDonneesGesprojetDepuisPIH ()
+        #completeDonneesGesprojetDepuisPIH ()
     else :
         trace ('Base de données métier non disponible !!')
     trace ('Resumé :')

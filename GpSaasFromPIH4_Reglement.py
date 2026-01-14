@@ -34,7 +34,10 @@ def initialiseParametreGlobal () :
     global globalNbCreeTheorique
     global globalNbParcouru
     global globalNbPostGp
-    DoTrace = True
+    global DoPostGp  
+
+    DoTrace  = True
+    DoPostGp = True
     
     globalNbCreeTheorique = 0
     globalNbParcouru      = 0
@@ -164,11 +167,14 @@ def requetePostGPDebug (pAction, donneeGpDictionnaire) :
         return (None)
 
 def requetePostGP (pAction, donneeGpDictionnaire) :
-    #requetePostGPDebug (pAction, donneeGpDictionnaire)
+    global DoPostGp  
+    if DoPostGp :
+        requetePostGPReel (pAction, donneeGpDictionnaire)     
+    else :
+        requetePostGPDebug (pAction, donneeGpDictionnaire)
     ##if donneeGpDictionnaire[0]["Nom_Table"] == 'Decaissement' :
     ##     if donneeGpDictionnaire[0]["Code_facture"] == 395280 :
     ##         requetePostGPReel (pAction, donneeGpDictionnaire)
-    requetePostGPReel (pAction, donneeGpDictionnaire)     
 
 def testExistanceDecaissement (CodeFacture) :
     if (CodeFacture is None) :

@@ -1,4 +1,5 @@
 import requests
+import base64
 import oracledb
 import json
 import unicodedata
@@ -21,6 +22,7 @@ def strip_accents(text):
 
 def initialiseParametreGlobal () :
     global globalUrlGP
+    global globalCredentialGP
     global globalUserPih
     global globalPwdPih
     global globalScsoPih
@@ -39,17 +41,18 @@ def initialiseParametreGlobal () :
     globalNbPostGp        = 0
 
     globalAcheteurGP = 'LES RESIDENCES'
-    ServeurGP    = 'eaque.opievoy.fr'
-    UserApiGP    = 'Json:1234'
-    PortGP       = '8888'
+    ServeurGP    = 'NS3250347.gesprojet.com'
+    UserApiGP    = 'JsonRes:Vc4#Sn7)Dw8!'
+    PortGP       = '9548'
     ComplementGP = 'req_json?'
-    httpGP       = 'HTTP'
+    httpGP       = 'https'
     globalUserPih  = 'LOGI'
     globalPwdPih   = 'SB'
     globalScsoPih  = 'OPI'
     globalDsnPih   = 'IG_PRODRYE'
     # globalDsnPih   = 'OnP_LR7891'
-    globalUrlGP = httpGP + '://' + UserApiGP + '@' + ServeurGP + ':' + PortGP + '/' + ComplementGP
+    globalUrlGP = httpGP +'://'+ ServeurGP +':'+ PortGP+'/'+ ComplementGP
+    globalCredentialGP = base64.b64encode(UserApiGP.encode()).decode()
     oracledb.init_oracle_client(lib_dir=r"C:\Oracle\instantclient_21_13")    
     globalDateCourte = datetime.now().strftime("%d-%m-%y")
     NomFicTrace = 'C:\\Exploitation\\interfacesGpPih4\\Trace\\reglements_'+datetime.now().strftime("%d-%m-%Y-%H%M%S")+'.txt'
@@ -104,7 +107,7 @@ def requeteGetGP (pComplementRequete) :
         global globalUrlGP
         #trace ('requeteGetGP : Entree')
         localPayLoad = []
-        localHeader  = {}
+        localHeader  = {"Authorization": f"Basic {globalCredentialGP}"}
         localUrl=globalUrlGP+pComplementRequete
         response=requests.request ('GET', url=localUrl, headers = localHeader, data = localPayLoad)
         if response and response.status_code in (200,201) :
@@ -127,7 +130,8 @@ def requetePostGPReel (pAction, donneeGpDictionnaire) :
         #trace (f"{pAction} : {donneeGpDictionnaire}")
         #trace (f"ROUTE POST = {localUrl}")
         payload = json.dumps (donneeGpDictionnaire)
-        headers = {'Content-Type':'application/json'}
+        headers = {'Content-Type':'application/json',
+                   'Authorization': f'Basic {globalCredentialGP}'}
         response=requests.request ("POST",url=localUrl,headers=headers,data=payload)
         globalNbPostGp += 1
         if response and response.status_code in (200,201) :
@@ -150,25 +154,16 @@ def requetePostGPDebug (pAction, donneeGpDictionnaire) :
         trace (f"{pAction} : {donneeGpDictionnaire}")
         trace (f"ROUTE POST = {localUrl}")
         payload = json.dumps (donneeGpDictionnaire)
-        headers = {'Content-Type':'application/json'}
-        #response=requests.request ("POST",url=localUrl,headers=headers,data=payload)
+        headers = {'Content-Type':'application/json',
+                   'Authorization': f'Basic {globalCredentialGP}'}
         globalNbPostGp += 1
-        #print (response)
-        #print (response.code)
-        #print (response.text)
-        #if response and response.status_code in (200,201) :
-        #    trace ('requetePostGP : Response Code = 200/201')
-        #    return (response)
-        #else :
-        #    trace ('requetePostGP : Response Code <> 200/201 --> ANOMALIE')
-        #    return (None)
     except :
         trace ('requetePostGP : Erreur inatendue')
         return (None)
 
 def requetePostGP (pAction, donneeGpDictionnaire) :
-    # requetePostGPDebug (pAction, donneeGpDictionnaire)
-    requetePostGPReel (pAction, donneeGpDictionnaire)     
+    requetePostGPDebug (pAction, donneeGpDictionnaire)
+    #requetePostGPReel (pAction, donneeGpDictionnaire)     
 
 def testExistanceDecaissement (CodeFacture) :
     if (CodeFacture is None) :

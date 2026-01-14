@@ -48,6 +48,20 @@ def rapprocheTwoStringLarge (str1, str2) :
     except :
         return (True)
 
+def adapteTelephoneForGp (pChaine) :
+    try :
+        if isinstance(pChaine, int) :
+            return (pChaine)
+        else : 
+            sChaine1 = pChaine.replace(' ','').replace('.','').replace('_','').replace('-','')  if not(pChaine is None) else '0'
+            if sChaine1[0:1] == '0' :
+                sChaine2 = sChaine1[1:]
+            else :
+                sChaine2 = sChaine1
+            return int(sChaine2.strip())
+    except :
+        return 0
+
 def rapprocheTwoSiret (str1, str2) :
     try :
         lStr1 = str1.replace('None','')[0:14] if not(str1 is None) else ''
@@ -79,7 +93,7 @@ def rapprocheTelephone (num1, num2) :
                 lNum2 = lNum2 + car
         #lNum1 = str(sNum1 if sNum1[0] != '0' else sNum1[1:])
         #lNum2 = str(sNum2 if sNum2[0] != '0' else sNum2[1:])
-        if lNum1.replace(' ','').replace('.','').replace('_','') == lNum2.replace(' ','').replace('.','').replace('_','') :
+        if lNum1.replace(' ','').replace('.','').replace('_','').replace('-','') == lNum2.replace(' ','').replace('.','').replace('_','').replace('-','') :
             return True
         else :
             return False
@@ -107,7 +121,7 @@ def initialiseParametreGlobalLRYE () :
     global globalCredentialGP
     DoTrace  = True
     DoDebug  = True
-    DoPostGp = False
+    DoPostGp = True
 
     globalAcheteurGP = 'LES RESIDENCES'
     ServeurGP    = 'NS3250347.gesprojet.com'
@@ -299,6 +313,8 @@ def requetePostGPDebug (pAction, donneeGpDictionnaire) :
 
 def requetePostGP (pAction, donneeGpDictionnaire) :
     debug ('requetePostGP:Entree')
+    donneeGpDictionnaire[0]['Telephone'] = adapteTelephoneForGp (donneeGpDictionnaire[0]['Telephone'])
+    donneeGpDictionnaire[0]['Telecopie'] = adapteTelephoneForGp (donneeGpDictionnaire[0]['Telecopie'])
     if DoPostGp :
         requetePostGPReel (pAction, donneeGpDictionnaire) 
     else : 
@@ -814,7 +830,7 @@ def doIt ():
     trace ('Lancement global')
     if initialiseConnexionBasePih () :
         rapprocheDonneesGesprojetAvecPIH ()
-        #completeDonneesGesprojetDepuisPIH ()
+        completeDonneesGesprojetDepuisPIH ()
     else :
         trace ('Base de données métier non disponible !!')
     trace ('Resumé :')

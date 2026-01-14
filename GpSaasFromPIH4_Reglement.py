@@ -55,7 +55,7 @@ def initialiseParametreGlobal () :
     globalCredentialGP = base64.b64encode(UserApiGP.encode()).decode()
     oracledb.init_oracle_client(lib_dir=r"C:\Oracle\instantclient_21_13")    
     globalDateCourte = datetime.now().strftime("%d-%m-%y")
-    NomFicTrace = 'C:\\Exploitation\\interfacesGpPih4\\Trace\\reglements_'+datetime.now().strftime("%d-%m-%Y-%H%M%S")+'.txt'
+    NomFicTrace = 'C:\\Exploitation\\interfaceGpSaasPih4Saas\\Trace\\reglements_'+datetime.now().strftime("%d-%m-%Y-%H%M%S")+'.txt'
     if DoTrace : 
         globalFicTrace = open (NomFicTrace,'x')
  
@@ -150,20 +150,25 @@ def requetePostGPDebug (pAction, donneeGpDictionnaire) :
         global globalNbPostGp
         trace ('requetePostGP : Entree')
         localUrl=f'{globalUrlGP}=null'
-        trace ('--------')
-        trace (f"{pAction} : {donneeGpDictionnaire}")
-        trace (f"ROUTE POST = {localUrl}")
         payload = json.dumps (donneeGpDictionnaire)
         headers = {'Content-Type':'application/json',
                    'Authorization': f'Basic {globalCredentialGP}'}
+        trace ('--------')
+        trace (f"{pAction} : {donneeGpDictionnaire}")
+        trace (f"ROUTE POST = {localUrl}")
+        trace (f'payload = {payload}')
+        trace (f'headers = {headers}')
         globalNbPostGp += 1
     except :
         trace ('requetePostGP : Erreur inatendue')
         return (None)
 
 def requetePostGP (pAction, donneeGpDictionnaire) :
-    requetePostGPDebug (pAction, donneeGpDictionnaire)
-    #requetePostGPReel (pAction, donneeGpDictionnaire)     
+    #requetePostGPDebug (pAction, donneeGpDictionnaire)
+    ##if donneeGpDictionnaire[0]["Nom_Table"] == 'Decaissement' :
+    ##     if donneeGpDictionnaire[0]["Code_facture"] == 395280 :
+    ##         requetePostGPReel (pAction, donneeGpDictionnaire)
+    requetePostGPReel (pAction, donneeGpDictionnaire)     
 
 def testExistanceDecaissement (CodeFacture) :
     if (CodeFacture is None) :
